@@ -68,7 +68,6 @@ def _sidebar_axis(df: pd.DataFrame):
 
 
 def _sidebar_filters(df: pd.DataFrame):
-    from src.data_loader import detect_column_types
     numerical, categorical = detect_column_types(df)
 
     if not numerical and not categorical:
@@ -119,7 +118,6 @@ def _apply_filters(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def _sidebar_buckets(df: pd.DataFrame):
-    from src.data_loader import detect_column_types
     numerical, _ = detect_column_types(df)
 
     st.sidebar.subheader("Color Range Buckets")
@@ -176,10 +174,6 @@ def _sidebar_buckets(df: pd.DataFrame):
 
 
 def _render_chart(df: pd.DataFrame):
-    from src.data_loader import detect_column_types
-    from src.color_mapper import categorize_series, build_color_map
-    from src.chart_builder import build_scatter
-
     x_col = st.session_state.x_col
     y_col = st.session_state.y_col
     color_col = st.session_state.color_by_col
