@@ -204,6 +204,15 @@ def _render_chart(df: pd.DataFrame):
 
     st.plotly_chart(fig, use_container_width=True)
 
+    png_bytes = fig.to_image(format="png", width=1400, height=800, scale=2)
+    filename = f"{y_col}_vs_{x_col}.png".replace(" ", "_")
+    st.download_button(
+        label="Download chart as PNG",
+        data=png_bytes,
+        file_name=filename,
+        mime="image/png",
+    )
+
     with st.expander("Filtered data preview"):
         st.dataframe(df.drop(columns=["__color_label__"], errors="ignore"), use_container_width=True)
 

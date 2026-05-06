@@ -1,0 +1,28 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(New-Item -ItemType Directory -Force -Path \"C:\\\\Users\\\\CédricVerstegen\\\\Downloads\\\\Graph creater\\\\docs\\\\superpowers\\\\plans\")",
+      "Bash(Out-Null)",
+      "Bash(Write-Output \"done\")",
+      "Bash(git init *)",
+      "Bash(git config *)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git ls-tree *)",
+      "Bash(python -m pip index versions streamlit)",
+      "Bash(Get-ChildItem *)",
+      "Bash(Select-Object -First 20)",
+      "Bash(python -m pytest tests/test_data_loader.py -v)",
+      "Bash(python -m pytest tests/test_color_mapper.py -v)",
+      "Bash(Select-Object -Property FullName)",
+      "Bash(python -m pytest tests/test_chart_builder.py -v)",
+      "Bash(python -m pip install -q plotly)",
+      "Bash(python -m pytest -v)",
+      "Bash(python -m pytest -v --tb=short)",
+      "Bash(python -c \"import ast; ast.parse\\(open\\('app.py'\\).read\\(\\)\\); print\\('OK'\\)\")",
+      "Bash(Find . -name \"*.py\" -path \"*/tests/*\")",
+      "Bash(terraform init *)",
+      "Bash(terraform validate *)"
+    ]
+  }
+}
