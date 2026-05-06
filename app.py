@@ -67,6 +67,57 @@ def _sidebar_axis(df: pd.DataFrame):
     )
 
 
+def _sidebar_filters(df: pd.DataFrame):
+    from src.data_loader import detect_column_types
+    numerical, categorical = detect_column_types(df)
+
+    if not numerical and not categorical:
+        return
+
+    st.sidebar.subheader("Filters")
+
+    for col in numerical:
+        col_min = float(df[col].min())
+        col_max = float(df[col].max())
+        if col_min == col_max:
+            continue  # no range to filter
+        stored = st.session_state.col_filters.get(col)
+        default_low  = stored[0] if stored and stored[0] >= col_min else col_min
+        default_high = stored[1] if stored and stored[1] <= col_max else col_max
+        low, high = st.sidebar.slider(
+            col,
+            min_value=col_min,
+            max_value=col_max,
+            value=(default_low, default_high),
+            key=f"filter_{col}",
+        )
+        st.session_state.col_filters[col] = (low, high)
+
+    for col in categorical:
+        unique_vals = sorted(df[col].dropna().unique().tolist())
+        stored = st.session_state.cat_filters.get(col)
+        valid_stored = [v for v in (stored or []) if v in unique_vals]
+        default_sel = valid_stored if valid_stored else unique_vals
+        selected = st.sidebar.multiselect(
+            col,
+            options=unique_vals,
+            default=default_sel,
+            key=f"catfilter_{col}",
+        )
+        st.session_state.cat_filters[col] = selected
+
+
+def _apply_filters(df: pd.DataFrame) -> pd.DataFrame:
+    mask = pd.Series(True, index=df.index)
+    for col, (low, high) in st.session_state.col_filters.items():
+        if col in df.columns:
+            mask &= (df[col] >= low) & (df[col] <= high)
+    for col, selected in st.session_state.cat_filters.items():
+        if col in df.columns and selected:
+            mask &= df[col].isin(selected)
+    return df[mask]
+
+
 def main():
     _init_state()
     st.title("Scatter Plot Builder")
@@ -82,6 +133,7 @@ def main():
         return
 
     _sidebar_axis(df)
+    _sidebar_filters(df)
 
     st.write(f"Loaded **{st.session_state.filename}** — {len(df):,} rows, {len(df.columns)} columns")
 
