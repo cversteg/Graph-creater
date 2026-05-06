@@ -118,6 +118,63 @@ def _apply_filters(df: pd.DataFrame) -> pd.DataFrame:
     return df[mask]
 
 
+def _sidebar_buckets(df: pd.DataFrame):
+    from src.data_loader import detect_column_types
+    numerical, _ = detect_column_types(df)
+
+    st.sidebar.subheader("Color Range Buckets")
+    st.sidebar.caption(
+        "Define ranges for the 'Color by' column. Values outside all ranges appear as 'Other'."
+    )
+
+    color_col = st.session_state.color_by_col
+    if color_col not in numerical:
+        st.sidebar.info(f"'{color_col}' is not numeric, buckets not applicable.")
+        return
+
+    col_min = float(df[color_col].min())
+    col_max = float(df[color_col].max())
+
+    DEFAULT_COLORS = [
+        "#1f77b4", "#ff7f0e", "#2ca02c", "#d62728",
+        "#9467bd", "#8c564b", "#e377c2", "#7f7f7f",
+    ]
+
+    buckets = st.session_state.buckets
+
+    to_remove = None
+    for i, bucket in enumerate(buckets):
+        with st.sidebar.expander(f"Bucket {i + 1}: {bucket['label']}", expanded=False):
+            cols = st.columns([1, 1])
+            bucket["min"] = cols[0].number_input(
+                "Min", value=float(bucket["min"]), key=f"bmin_{i}"
+            )
+            bucket["max"] = cols[1].number_input(
+                "Max", value=float(bucket["max"]), key=f"bmax_{i}"
+            )
+            bucket["label"] = st.text_input("Label", value=bucket["label"], key=f"blabel_{i}")
+            bucket["color"] = st.color_picker("Color", value=bucket["color"], key=f"bcolor_{i}")
+            if st.button("Remove", key=f"bremove_{i}"):
+                to_remove = i
+
+    if to_remove is not None:
+        buckets.pop(to_remove)
+        st.rerun()
+
+    if st.sidebar.button("+ Add Bucket"):
+        idx = len(buckets)
+        step = (col_max - col_min) / 10 if col_max != col_min else 1.0
+        buckets.append({
+            "min": round(col_min + idx * step, 4),
+            "max": round(col_min + (idx + 1) * step, 4),
+            "label": f"Range {idx + 1}",
+            "color": DEFAULT_COLORS[idx % len(DEFAULT_COLORS)],
+        })
+        st.rerun()
+
+    st.session_state.buckets = buckets
+
+
 def main():
     _init_state()
     st.title("Scatter Plot Builder")
@@ -134,6 +191,7 @@ def main():
 
     _sidebar_axis(df)
     _sidebar_filters(df)
+    _sidebar_buckets(df)
 
     st.write(f"Loaded **{st.session_state.filename}** — {len(df):,} rows, {len(df.columns)} columns")
 
