@@ -175,6 +175,45 @@ def _sidebar_buckets(df: pd.DataFrame):
     st.session_state.buckets = buckets
 
 
+def _render_chart(df: pd.DataFrame):
+    from src.data_loader import detect_column_types
+    from src.color_mapper import categorize_series, build_color_map
+    from src.chart_builder import build_scatter
+
+    x_col = st.session_state.x_col
+    y_col = st.session_state.y_col
+    color_col = st.session_state.color_by_col
+    buckets = st.session_state.buckets
+
+    numerical, _ = detect_column_types(df)
+    use_buckets = color_col in numerical and len(buckets) > 0
+
+    if use_buckets:
+        df = df.copy()
+        df["__color_label__"] = categorize_series(df[color_col], buckets)
+        color_map = build_color_map(buckets)
+        fig = build_scatter(
+            df, x_col=x_col, y_col=y_col,
+            color_col="__color_label__",
+            color_map=color_map,
+            title=f"{y_col} vs {x_col}",
+        )
+        # Restore the legend title to the actual column name
+        fig.update_layout(legend_title_text=color_col)
+    else:
+        fig = build_scatter(
+            df, x_col=x_col, y_col=y_col,
+            color_col=color_col,
+            color_map=None,
+            title=f"{y_col} vs {x_col}",
+        )
+
+    st.plotly_chart(fig, use_container_width=True)
+
+    with st.expander("Filtered data preview"):
+        st.dataframe(df.drop(columns=["__color_label__"], errors="ignore"), use_container_width=True)
+
+
 def main():
     _init_state()
     st.title("Scatter Plot Builder")
@@ -194,6 +233,12 @@ def main():
     _sidebar_buckets(df)
 
     st.write(f"Loaded **{st.session_state.filename}** — {len(df):,} rows, {len(df.columns)} columns")
+    filtered_df = _apply_filters(df)
+    st.caption(f"Showing {len(filtered_df):,} of {len(df):,} rows after filters.")
+    if filtered_df.empty:
+        st.warning("No data matches the current filters.")
+        return
+    _render_chart(filtered_df)
 
 
 if __name__ == "__main__":
