@@ -21,6 +21,39 @@ def _sorted_unique_values(series: pd.Series):
     return sorted(unique_vals, key=lambda value: str(value))
 
 
+def _make_arrow_safe_preview_df(df: pd.DataFrame) -> pd.DataFrame:
+    safe_df = df.copy()
+    for col in safe_df.columns:
+        if pd.api.types.is_object_dtype(safe_df[col]):
+            non_null = safe_df[col].dropna()
+            if non_null.empty:
+                continue
+            value_types = {type(value) for value in non_null}
+            if len(value_types) > 1:
+                safe_df[col] = safe_df[col].astype(str)
+    return safe_df
+
+
+def _safe_numeric_bounds(series: pd.Series):
+    numeric_values = pd.to_numeric(series, errors="coerce").dropna()
+    if numeric_values.empty:
+        return None
+    col_min = float(numeric_values.min())
+    col_max = float(numeric_values.max())
+    if pd.isna(col_min) or pd.isna(col_max):
+        return None
+    return col_min, col_max
+
+
+def _default_axis_columns(cols):
+    if not cols:
+        return None, None, None
+    x_col = cols[0]
+    y_col = cols[1] if len(cols) > 1 else cols[0]
+    color_col = cols[2] if len(cols) > 2 else cols[0]
+    return x_col, y_col, color_col
+
+
 def _init_state():
     defaults = {
         "df": None,
@@ -47,9 +80,10 @@ def _handle_upload(uploaded_file):
     st.session_state.filename = uploaded_file.name
     # Reset axis selections when a new file is loaded
     cols = list(df.columns)
-    st.session_state.x_col = cols[0] if len(cols) > 0 else None
-    st.session_state.y_col = cols[1] if len(cols) > 1 else cols[0]
-    st.session_state.color_by_col = cols[2] if len(cols) > 2 else cols[0]
+    x_col, y_col, color_col = _default_axis_columns(cols)
+    st.session_state.x_col = x_col
+    st.session_state.y_col = y_col
+    st.session_state.color_by_col = color_col
     # Purge filters for columns that no longer exist
     existing = set(cols)
     st.session_state.col_filters = {
@@ -89,8 +123,10 @@ def _sidebar_filters(df: pd.DataFrame):
     st.sidebar.subheader("Filters")
 
     for col in numerical:
-        col_min = float(df[col].min())
-        col_max = float(df[col].max())
+        bounds = _safe_numeric_bounds(df[col])
+        if bounds is None:
+            continue
+        col_min, col_max = bounds
         if col_min == col_max:
             continue  # no range to filter
         stored = st.session_state.col_filters.get(col)
@@ -143,8 +179,11 @@ def _sidebar_buckets(df: pd.DataFrame):
         st.sidebar.info(f"'{color_col}' is not numeric, buckets not applicable.")
         return
 
-    col_min = float(df[color_col].min())
-    col_max = float(df[color_col].max())
+    bounds = _safe_numeric_bounds(df[color_col])
+    if bounds is None:
+        st.sidebar.info(f"'{color_col}' has no numeric values for buckets.")
+        return
+    col_min, col_max = bounds
 
     DEFAULT_COLORS = [
         "#1f77b4", "#ff7f0e", "#2ca02c", "#d62728",
@@ -230,7 +269,8 @@ def _render_chart(df: pd.DataFrame):
         )
 
     with st.expander("Filtered data preview"):
-        st.dataframe(df.drop(columns=["__color_label__"], errors="ignore"), width="stretch")
+        preview_df = df.drop(columns=["__color_label__"], errors="ignore")
+        st.dataframe(_make_arrow_safe_preview_df(preview_df), width="stretch")
 
 
 def main():
