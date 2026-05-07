@@ -8,6 +8,13 @@ from src.chart_builder import build_scatter
 st.set_page_config(page_title="Scatter Plot Builder", layout="wide")
 
 
+def _safe_png_bytes(fig):
+    try:
+        return fig.to_image(format="png", width=1400, height=800, scale=2)
+    except Exception:
+        return None
+
+
 def _init_state():
     defaults = {
         "df": None,
@@ -204,14 +211,17 @@ def _render_chart(df: pd.DataFrame):
 
     st.plotly_chart(fig, width="stretch")
 
-    png_bytes = fig.to_image(format="png", width=1400, height=800, scale=2)
+    png_bytes = _safe_png_bytes(fig)
     filename = f"{y_col}_vs_{x_col}.png".replace(" ", "_")
-    st.download_button(
-        label="Download chart as PNG",
-        data=png_bytes,
-        file_name=filename,
-        mime="image/png",
-    )
+    if png_bytes is None:
+        st.info("PNG export is unavailable in this environment.")
+    else:
+        st.download_button(
+            label="Download chart as PNG",
+            data=png_bytes,
+            file_name=filename,
+            mime="image/png",
+        )
 
     with st.expander("Filtered data preview"):
         st.dataframe(df.drop(columns=["__color_label__"], errors="ignore"), width="stretch")
