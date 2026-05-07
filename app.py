@@ -15,6 +15,12 @@ def _safe_png_bytes(fig):
         return None
 
 
+def _sorted_unique_values(series: pd.Series):
+    unique_vals = series.dropna().unique().tolist()
+    # Mixed types (e.g. str + float) cannot be compared directly on Python 3.14.
+    return sorted(unique_vals, key=lambda value: str(value))
+
+
 def _init_state():
     defaults = {
         "df": None,
@@ -100,7 +106,7 @@ def _sidebar_filters(df: pd.DataFrame):
         st.session_state.col_filters[col] = (low, high)
 
     for col in categorical:
-        unique_vals = sorted(df[col].dropna().unique().tolist())
+        unique_vals = _sorted_unique_values(df[col])
         stored = st.session_state.cat_filters.get(col)
         valid_stored = [v for v in (stored or []) if v in unique_vals]
         default_sel = valid_stored if valid_stored else unique_vals
