@@ -202,7 +202,7 @@ def _render_chart(df: pd.DataFrame):
             title=f"{y_col} vs {x_col}",
         )
 
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
 
     png_bytes = fig.to_image(format="png", width=1400, height=800, scale=2)
     filename = f"{y_col}_vs_{x_col}.png".replace(" ", "_")
@@ -214,7 +214,7 @@ def _render_chart(df: pd.DataFrame):
     )
 
     with st.expander("Filtered data preview"):
-        st.dataframe(df.drop(columns=["__color_label__"], errors="ignore"), use_container_width=True)
+        st.dataframe(df.drop(columns=["__color_label__"], errors="ignore"), width="stretch")
 
 
 def main():
