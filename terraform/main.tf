@@ -33,15 +33,18 @@ resource "azurerm_linux_web_app" "app" {
   resource_group_name = azurerm_resource_group.rg.name
   location            = azurerm_service_plan.asp.location
   service_plan_id     = azurerm_service_plan.asp.id
+  https_only          = true
 
   site_config {
-    always_on = false  # F1 tier does not support always_on
+    # Always On is not available on free F1 (Basic B1+ only). Enabling it on F1 fails or can force a paid SKU.
+    always_on = false
 
     application_stack {
       python_version = "3.11"
     }
 
-    app_command_line = "streamlit run app.py"
+    # Explicit host/port so Oryx/startup matches WEBSITES_PORT (see .streamlit/config.toml).
+    app_command_line = "python -m streamlit run app.py --server.port=8000 --server.address=0.0.0.0"
   }
 
   app_settings = {
