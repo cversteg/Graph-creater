@@ -19,6 +19,7 @@ def build_scatter(
         color=color_col,
         color_discrete_map=color_map,
         title=title,
+        render_mode="webgl",
     )
     fig.update_layout(
         plot_bgcolor="white",
